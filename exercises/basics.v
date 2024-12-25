@@ -99,6 +99,11 @@ Proof.
     Mode for you, so we can directly introduce [P].
   *)
   iIntros "H".
+  Check Σ. Check (iProp Σ).
+  Print Σ.
+  Check gFunctors. Print gFunctors.
+  Check fin. Print fin. Check Fin.t. Print Fin.t.
+  Check gFunctor. Print gFunctor.
   (**
     This adds [P] to the spatial context with the identifier ["H"]. To
     finish the proof, one would normally use either [exact] or [apply].
@@ -114,7 +119,7 @@ Qed.
   In Coq, the context and the goal is a sequent (we use [⊢ₓ] for
   the Coq entailment to distinguish it from the Iris entailment [⊢]):
 
-                    [H₁ : Φ₁, ..., Hₙ : Φₙ ⊢ₓ Ψ]
+                    [(H₁ : Φ₁), ..., (Hₙ : Φₙ) ⊢ₓ Ψ]
 
   Here, the left-hand side of the Coq entailment [⊢ₓ] is the
   (non-spatial) context and the right-hand side is the goal. This
@@ -222,8 +227,11 @@ Qed.
 *)
 Lemma modus_ponens (P Q : iProp Σ) : P -∗ (P -∗ Q) -∗ Q.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "HP".
+  iIntros "HPQ".
+  iApply "HPQ".
+  iAssumption.
+Qed.
 
 (**
   Just as with Coq tactics, Iris allows nesting of introduction
@@ -236,8 +244,11 @@ Admitted.
 *)
 Lemma sep_assoc_1 (P Q R : iProp Σ) : P ∗ Q ∗ R ⊢ (P ∗ Q) ∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "(HP & HQ & HR)".
+  iSplitR "HR".
+  - iSplitL "HP"; iAssumption.
+  - iAssumption.
+Qed.
 
 (**
   Manually splitting a separation can become tedious. To alleviate this,
@@ -288,9 +299,10 @@ Qed.
 *)
 Lemma wand_adj (P Q R : iProp Σ) : (P -∗ Q -∗ R) ⊣⊢ (P ∗ Q -∗ R).
 Proof.
-  iSplit.
-  (* exercise *)
-Admitted.
+  iSplit; iIntros "H".
+  - iIntros "(HP & HQ)". iApply ("H" with "HP HQ").
+  - iIntros "HP". iIntros "HQ". iApply "H". iSplitL "HP"; iAssumption.
+Qed.
 
 (**
   Disjunctions [∨] are treated just like disjunctions in Coq. The
@@ -301,8 +313,10 @@ Admitted.
 *)
 Lemma or_comm (P Q : iProp Σ) : Q ∨ P ⊢ P ∨ Q.
 Proof.
-  (* exercise *)
-Admitted.
+iIntros "[HQ | HP]".
+- iRight; iAssumption.
+- iLeft; iAssumption.
+Qed.
 
 (**
   We can even prove the usual elimination rule for or-elimination
@@ -311,8 +325,10 @@ Admitted.
 *)
 Lemma or_elim (P Q R : iProp Σ) : (P -∗ R) -∗ (Q -∗ R) -∗ P ∨ Q -∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+iIntros "HPR". iIntros "HQR". iIntros "[HP | HQ]".
+- iApply "HPR". iAssumption.
+- iApply "HQR". iAssumption.
+Qed.
 
 (**
   Separating conjunction distributes over disjunction (for the same
@@ -320,8 +336,14 @@ Admitted.
 *)
 Lemma sep_or_distr (P Q R : iProp Σ) : P ∗ (Q ∨ R) ⊣⊢ P ∗ Q ∨ P ∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+iSplit.
+- iIntros "(HP & [HQ | HR])".
+  + iLeft. iSplitL "HP"; iAssumption.
+  + iRight. iSplitL "HP"; iAssumption.
+- iIntros "[(HP & HQ) | (HP & HR)]".
+  + iSplitL "HP"; try iAssumption. iLeft; iAssumption.
+  + iSplitL "HP"; try iAssumption. iRight; iAssumption.
+Qed.
 
 (**
   Iris has existential and universal quantifiers over any Coq type.
@@ -337,8 +359,10 @@ Proof.
   - iIntros "(HP & %x & HΦ)".
     iExists x.
     iFrame.
-  - (* exercise *)
-Admitted.
+  - iIntros "(%x & HP & HΦ)".
+    iSplitL "HP"; try iAssumption.
+    iExists x. iAssumption.
+Qed.
 
 (**
   Likewise, forall quantification works almost as in Coq. To introduce
@@ -350,7 +374,8 @@ Admitted.
 Lemma sep_all_distr {A} (P Q : A → iProp Σ) :
   (∀ x, P x) ∗ (∀ x, Q x) -∗ (∀ x, P x ∗ Q x).
 Proof.
-  (* exercise *)
-Admitted.
+iIntros "(HP & HQ)". iIntros "%x".
+iSplitL "HP"; iAssumption.
+Qed.
 
 End proofs.
