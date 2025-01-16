@@ -14,11 +14,16 @@ Context `{!heapGS Σ}.
   turns a list of values [xs] into a predicate describing the structure
   of the linked list.
 *)
+Check NONEV.
 Fixpoint isList (l : val) (xs : list val) : iProp Σ :=
   match xs with
   | [] => ⌜l = NONEV⌝
-  | x :: xs => ∃ (hd : loc) l', ⌜l = SOMEV (#hd)⌝ ∗ hd ↦ (x, l') ∗ isList l' xs
+  | x :: xs => ∃ (hd : loc) l',
+        ⌜l = SOMEV (#hd)⌝ ∗
+        hd ↦ (x, l') ∗
+        isList l' xs
   end.
+Locate "SOME".
 (**
   Here, [NONEV] and [SOMEV v] are the value equivalents of [NONE] and
   [SOME e].
@@ -58,15 +63,34 @@ Proof.
     hypothesis.
   *)
   revert l.
-  induction xs as [|x xs' IH]; simpl.
-  - (* Base Case: xs = [] *)
-    iIntros (l) "%Φ -> HΦ".
+
+  induction xs as [|x xs' IH].
+  - simpl. iIntros "%l %Φ %Hl". subst l.
+    iIntros "HΦ".
     wp_rec.
-    wp_pures.
-    by iApply "HΦ".
-  - (* Induction step: xs = x :: xs' *)
-    (* exercise *)
-Admitted.
+    wp_pure.
+    wp_seq.
+    iModIntro.
+    iApply "HΦ".
+    done.
+  - simpl.
+    iIntros "%l %Φ (%hd & %l' & %Hl & Hhd & HList)".
+    subst l.
+    iIntros "HΦ".
+    wp_rec.
+    wp_pure.
+    wp_let. wp_load. wp_pure.
+    wp_let. wp_load. wp_pure.
+    wp_let. wp_store.
+    iApply (IH l' with "[HList] [Hhd HΦ]").
+    {done. }
+    iNext.
+    iIntros "HList".
+    iApply "HΦ".
+    iExists hd. iExists l'.
+    iSplitR. {done. }
+    iFrame.
+Qed.
 
 (**
   The append function recursively descends [l1], updating the links.
@@ -96,9 +120,41 @@ Lemma append_spec (l1 l2 : val) (xs ys : list val) :
   {{{ l, RET l; isList l (xs ++ ys) }}}.
 Proof.
   revert ys l1 l2.
-  induction xs as [| x xs' IH]; simpl.
+  induction xs as [| x xs' IH].
   (* exercise *)
-Admitted.
+  - simpl.
+    iIntros "%ys %l1 %l2 %Φ [-> H2] H".
+    wp_rec.
+    wp_let.
+    wp_pure.
+    wp_seq.
+    iApply "H".
+    done.
+  - iIntros "%ys %l1 %l2 %Φ".
+    simpl.
+    iIntros "((%hd & %l' & -> & Hhd & Hl) & Hl2)".
+    iIntros "HΦ".
+
+    wp_rec.
+    wp_pures.
+    do 2 (wp_load; wp_pures).
+
+    wp_bind (append l' l2).
+    iApply (IH ys l' l2 _ with "[Hl Hl2] [HΦ Hhd]").
+
+    + iFrame.
+    + iIntros (l).
+      iNext.
+      iIntros "Hl".
+      wp_pures.
+      wp_store.
+      wp_pures.
+      iModIntro.
+      iApply "HΦ".
+      iExists hd, l.
+      iSplitR. {done. }
+      iFrame.
+Qed.
 
 (**
   We will implement reverse using a helper function called
@@ -131,7 +187,14 @@ Proof.
   revert l acc ys.
   induction xs as [| x xs' IH]; simpl.
   (* exercise *)
-Admitted.
+  - iIntros (l acc ys Φ).
+    iIntros "[-> Hacc]".
+    iIntros "HΦ".
+    wp_rec; wp_pures.
+    iModIntro.
+    iApply "HΦ".
+    done.
+  - 
 
 (**
   Now, we use the specification of [reverse_append] to prove the

@@ -141,7 +141,7 @@ Example sums : expr :=
 
 (* Compute (exec 10 sums). *)
 (** Evaluates to [inl #2] *)
-
+Print SOME. Print NONE.
 Example option : expr :=
   let: "r" := SOME #1 in
   match: "r" with
@@ -159,6 +159,9 @@ Example option : expr :=
   functions are first-class citizens, which gives support for
   higher-order functions.
 *)
+Check expr.
+Locate expr.
+
 
 Example lambda : expr :=
   let: "add5" := (λ: "x", "x" + #5) in
@@ -171,7 +174,9 @@ Example lambda : expr :=
 
 Example recursion : expr :=
   let: "fac" :=
-    rec: "f" "n" := if: "n" = #0 then #1 else "n" * "f" ("n" - #1)
+    rec: "f" "n" :=
+      if: "n" = #0 then #1
+      else "n" * "f" ("n" - #1)
   in
   ("fac" #4, "fac" #5).
 
@@ -301,6 +306,7 @@ Example fork : expr :=
   which we can use in conjunction with [join] to wait for the result of
   the computation.
 *)
+Print spawn.
 Example spawn : expr :=
   let: "l" := ref #5 in
   let: "handle" := spawn (λ: "_", "l" <- #6;; #2) in

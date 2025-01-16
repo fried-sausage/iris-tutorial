@@ -119,13 +119,9 @@ Qed.
   inverses, but they are related.
 *)
 Lemma pure_adj1 (φ : Prop) : φ → ⊢ ⌜φ⌝.
-Proof.
-  (* exercise *)
-Admitted.
+Proof. intros H. iPureIntro. assumption. Qed.
 
 Lemma pure_adj2 (P : iProp Σ) : ⌜⊢ P⌝ -∗ P.
-Proof.
-  (* exercise *)
-Admitted.
+Proof. iIntros "%HP". iApply HP. Qed.
 
 End proofs.

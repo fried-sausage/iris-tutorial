@@ -158,8 +158,11 @@ Example lambda : expr :=
 Lemma lambda_spec : ⊢ WP lambda {{ v, ⌜v = #20⌝ }}.
 Proof.
   rewrite /lambda.
-  (* exercise *)
-Admitted.
+  wp_pures.
+  iModIntro.
+  iPureIntro.
+  reflexivity.
+Qed.
 
 (* ================================================================= *)
 (** ** Resources *)
@@ -251,10 +254,11 @@ Lemma cmpXchg_0_to_10_spec (l : loc) (v : val) :
                                (⌜v ≠ #0⌝ ∗ l ↦ v) }}.
 Proof.
   iIntros "Hl".
+  rewrite /cmpXchg_0_to_10.
   wp_cmpxchg as H1 | H2.
   - (* CmpXchg succeeded *)
-    iLeft.
-    by iFrame.
+    iModIntro.
+    iLeft. iSplitR; done.
   - (* CmpXchg failed *)
     iRight.
     by iFrame.
@@ -298,7 +302,13 @@ Proof.
   wp_proj.
   wp_if.
   (* exercise *)
-Admitted.
+  wp_load. wp_let.
+  wp_cmpxchg_suc. wp_proj.
+  wp_if.
+  wp_load. wp_let.
+  wp_pure.
+  iModIntro. iPureIntro. reflexivity.
+Qed.
 
 (**
   We finish this section with a final remark about the points-to
@@ -351,7 +361,7 @@ Proof.
     achieved with the [wp_wand] lemma, which generates two subgoals, one
     corresponding to [WP e {{ Φ }}] and one to [(∀ v, Φ v -∗ Ψ v)].
   *)
-  iApply wp_wand; simpl.
+  iApply wp_wand.
   { iApply prog_spec. }
   simpl.
   (**
@@ -427,7 +437,12 @@ Qed.
   In Iris, Hoare triples are actually defined in terms of weakest
   preconditions. The definition is as follows:
 
-    [□( ∀ Φ, P -∗ ▷ (∀ r0 .. rn, Q -∗ Φ v) -∗ WP e {{v, Φ v }})]
+    [□(
+      ∀ Φ,
+        P -∗
+         ▷ (∀ r0 .. rn, Q -∗ Φ v) -∗
+              WP e {{v, Φ v }}
+    )]
 
   This is quite a lengthy definition, so let us break it down.
   Firstly, inspired by the [prog_spec_2] example from the previous
@@ -450,13 +465,14 @@ Definition swap : val :=
   let: "v" := !"x" in
   "x" <- !"y";;
   "y" <- "v".
-
+Search ((_ -∗ _ -∗ _) ⊣⊢ _).
 (** We will use a Hoare triple to specify this program's behaviour. *)
 Lemma swap_spec (l1 l2 : loc) (v1 v2 : val) :
   {{{ l1 ↦ v1 ∗ l2 ↦ v2 }}}
     swap #l1 #l2
   {{{ RET #(); l1 ↦ v2 ∗ l2 ↦ v1 }}}.
 Proof.
+  (* iIntros "%Φ". iIntros "[H1 H2]". iIntros "HΦ". *)
   (**
     When introducing a Hoare triple, we use the definition above to turn
     the goal into a weakest precondition.
@@ -470,6 +486,7 @@ Proof.
   wp_store.
   wp_store.
   iApply "HΦ".
+  (** iModIntro. iFrame. *)
   by iFrame.
 Qed.
 
@@ -484,7 +501,7 @@ Lemma swap_swap_spec (l1 l2 : loc) (v1 v2 : val) :
     swap #l1 #l2;; swap #l1 #l2
   {{{ RET #(); l1 ↦ v1 ∗ l2 ↦ v2 }}}.
 Proof.
-  iIntros "%Φ H HΦ".
+  iIntros "%Φ". iIntros "H HΦ".
   wp_apply (swap_spec with "H").
   iIntros "H".
   wp_seq.
@@ -566,6 +583,7 @@ Lemma par_client_spec :
     par_client
   {{{ l1 l2 life, RET (#l1, #l2, #life); l1 ↦ #21 ∗ l2 ↦ #2 ∗ ⌜life = 42⌝ }}}.
 Proof.
+  (** iIntros "%Φ JustTrue". iClear "JustTrue". iIntros "HΦ". *)
   iIntros (Φ _) "HΦ".
   rewrite /par_client.
   (**
@@ -589,6 +607,17 @@ Proof.
     ownership of [l1 ↦ #0] to the first thread, and [l2 ↦ #0] to the
     second. This allows each thread to perform its store operation.
   *)
+
+  (**
+  wp_bind (par (λ: <>, #l1 <- #21)%V (λ: <>, #l2 <- #2)%V).
+  Check (wp_par t1_post t2_post (#l1 <- #21) (#l2 <- #2)).
+  iApply (
+    (wp_par t1_post t2_post
+            (#l1 <- #21) (#l2 <- #2))
+    with "[Hl1] [Hl2]"
+  ).
+  *)
+
   wp_apply (wp_par t1_post t2_post with "[Hl1] [Hl2]").
   (**
     We must now prove WP specifications for each thread, with the
@@ -615,6 +644,8 @@ Proof.
   wp_load.
   wp_load.
   wp_pures.
+
+  Locate "$!".
   iApply ("HΦ" $! l1 l2 (21 * 2)).
   by iFrame.
 Qed.

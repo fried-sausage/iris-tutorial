@@ -191,6 +191,7 @@ Proof.
     [iDestruct] with the usual introduction pattern. However, like
     with [intros], we can use [iIntros] to eliminate directly.
   *)
+  (** iIntros "HPQ". iDestruct "HPQ" as "[HP HQ]". *)
   iIntros "[HP HQ]".
   (**
     Unlike [∧], [∗] is not idempotent. Specifically, there are Iris
