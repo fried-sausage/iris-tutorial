@@ -194,7 +194,7 @@ Proof.
     iModIntro.
     iApply "HΦ".
     done.
-  - 
+  - Admitted.
 
 (**
   Now, we use the specification of [reverse_append] to prove the
@@ -205,7 +205,7 @@ Lemma reverse_spec (l : val) (xs : list val) :
     reverse l
   {{{ v, RET v; isList v (rev xs) }}}.
 Proof.
-  (* exercise *)
+  (* exercise *)s
 Admitted.
 
 (**
