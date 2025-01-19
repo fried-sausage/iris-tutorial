@@ -185,17 +185,29 @@ Lemma reverse_append_spec (l acc : val) (xs ys : list val) :
   {{{ v, RET v; isList v (rev xs ++ ys) }}}.
 Proof.
   revert l acc ys.
-  induction xs as [| x xs' IH]; simpl.
+  induction xs as [| x xs' IH]; simpl; iIntros (l acc ys Φ).
   (* exercise *)
-  - iIntros (l acc ys Φ).
-    iIntros "[-> Hacc]".
+  - iIntros "[-> Hacc]".
     iIntros "HΦ".
     wp_rec; wp_pures.
     iModIntro.
     iApply "HΦ".
     done.
-  - Admitted.
+  - iIntros "((%hd & %l' & -> & Hhd & Hl') & Hacc)".
+    rewrite <- app_assoc.
+    iIntros "HΦ".
 
+    wp_rec.
+    wp_pures.
+    wp_load.
+    wp_load.
+    wp_store.
+
+    iApply (IH _ _ (x::ys) with "[Hl' Hacc Hhd] [HΦ]"); clear IH.
+    + simpl. iFrame. done.
+    + iNext. done.
+Qed.
+      
 (**
   Now, we use the specification of [reverse_append] to prove the
   specification of [reverse].
@@ -205,8 +217,15 @@ Lemma reverse_spec (l : val) (xs : list val) :
     reverse l
   {{{ v, RET v; isList v (rev xs) }}}.
 Proof.
-  (* exercise *)s
-Admitted.
+  iIntros "%Φ Hl HΦ".
+  unfold reverse.
+  wp_pure. wp_pure.
+  Check reverse_append_spec.
+  iApply (reverse_append_spec l _ xs [] with "[Hl] [HΦ]").
+  - iFrame. simpl. done.
+  - rewrite app_nil_r. iNext.
+    iAssumption.
+Qed.
 
 (**
   The specifications thus far have been rather straightforward. Now we
